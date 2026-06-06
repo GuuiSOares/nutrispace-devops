@@ -1,6 +1,6 @@
 services:
   db-nutrispace:
-    image: gvenzl/oracle-xe:21-slim
+    image: gvenzl/oracle-xe:21-slim-faststart
     container_name: db-nutrispace-rm562673
     restart: unless-stopped
     shm_size: 1g
@@ -32,12 +32,13 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@db-nutrispace:1521/XE
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@db-nutrispace:1521/XEPDB1
       SPRING_DATASOURCE_USERNAME: SYSTEM
       SPRING_DATASOURCE_PASSWORD: ${ORACLE_PASSWORD:-Fiap@2tdsvms}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: oracle.jdbc.OracleDriver
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.OracleDialect
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_DEVTOOLS_RESTART_ENABLED: "false"
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xmx384m -Xms256m}
     networks:
       - nutrispace_net

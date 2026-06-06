@@ -51,7 +51,7 @@ flowchart TB
         subgraph Docker["Docker Compose"]
             VM --> API[api-nutrispace-rm562673<br/>Spring Boot :8080]
             VM --> DB[(db-nutrispace-rm562673<br/>Oracle XE :1521)]
-            API -->|JDBC db-nutrispace:1521/XE| DB
+            API -->|JDBC db-nutrispace:1521/XEPDB1| DB
             DB --> VOL[(Volume nutrispace_data)]
         end
     end
@@ -183,7 +183,7 @@ exit
 
 ```bash
 docker container exec db-nutrispace-rm562673 bash -c \
-  "echo \"SELECT table_name FROM user_tables WHERE table_name LIKE 'TB_NS%';\" | sqlplus -s system/Fiap@2tdsvms@localhost:1521/XE"
+  "echo \"SELECT table_name FROM user_tables WHERE table_name LIKE 'TB_NS%';\" | sqlplus -s system/Fiap@2tdsvms@localhost:1521/XEPDB1"
 ```
 
 ### 7. Testar a API
@@ -224,7 +224,7 @@ Após cada operação de escrita, validar no banco:
 
 ```bash
 docker container exec db-nutrispace-rm562673 bash -c \
-  "echo \"SELECT id_planta, nome_planta FROM tb_ns_planta;\" | sqlplus -s system/Fiap@2tdsvms@localhost:1521/XE"
+  "echo \"SELECT id_planta, nome_planta FROM tb_ns_planta;\" | sqlplus -s system/Fiap@2tdsvms@localhost:1521/XEPDB1"
 ```
 
 ---
