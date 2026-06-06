@@ -1,0 +1,20 @@
+.env
+
+# Java / Maven
+NutriSpace-GS-main/target/
+NutriSpace-GS-main/.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+azure/vm-info.env
+
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

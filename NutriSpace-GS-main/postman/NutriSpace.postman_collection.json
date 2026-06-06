@@ -1,0 +1,976 @@
+{
+	"info": {
+		"_postman_id": "nutrispace-api-collection",
+		"name": "NutriSpace API",
+		"description": "Collection NutriSpace (FIAP GS).\n\n**Como testar:**\n1. Importe collection + environment (`NutriSpace-Local` ou `NutriSpace-Render`)\n2. Reinicie a API (perfil `oracle`)\n3. Run collection com **Delay 300ms** entre requisições\n4. Na 1ª execução após erro, **desmarque** Keep variable values\n\n**Login:** `lucas@nutrispace.com` / `senha123`",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "idPlanta",
+			"value": ""
+		},
+		{
+			"key": "idAstronauta",
+			"value": ""
+		},
+		{
+			"key": "idAstronautaNovo",
+			"value": ""
+		},
+		{
+			"key": "idEstufa",
+			"value": ""
+		},
+		{
+			"key": "idReservatorio",
+			"value": ""
+		},
+		{
+			"key": "idAlerta",
+			"value": ""
+		},
+		{
+			"key": "emailAstronautaNovo",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "01 - Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Login OK', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    pm.collectionVariables.set('token', json.token);",
+									"    pm.collectionVariables.set('idAstronauta', json.idAstronauta);",
+									"    pm.test('Token JWT recebido', () => pm.expect(json.token).to.be.a('string'));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"lucas@nutrispace.com\",\n  \"senha\": \"senha123\"\n}"
+						},
+						"url": "{{baseUrl}}/auth/login"
+					}
+				}
+			]
+		},
+		{
+			"name": "02 - Raiz HATEOAS",
+			"item": [
+				{
+					"name": "GET / (links)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('HATEOAS OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"url": "{{baseUrl}}/"
+					}
+				}
+			]
+		},
+		{
+			"name": "03 - Plantas",
+			"item": [
+				{
+					"name": "Listar plantas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar plantas OK', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    if (json._embedded) {",
+									"        const items = json._embedded[Object.keys(json._embedded)[0]];",
+									"        if (items && items.length > 0 && items[0].idPlanta) {",
+									"            pm.collectionVariables.set('idPlanta', items[0].idPlanta);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/plantas"
+					}
+				},
+				{
+					"name": "Criar planta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Criar planta OK', () => pm.response.to.have.status(201));",
+									"if (pm.response.code === 201) {",
+									"    pm.collectionVariables.set('idPlanta', pm.response.json().idPlanta);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nomePlanta\": \"Alface Espacial\",\n  \"tempMinIdeal\": 18.0,\n  \"tempMaxIdeal\": 26.0,\n  \"umiMinIdeal\": 55.0\n}"
+						},
+						"url": "{{baseUrl}}/plantas"
+					}
+				},
+				{
+					"name": "Buscar planta por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Buscar planta OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/plantas/{{idPlanta}}"
+					}
+				},
+				{
+					"name": "Atualizar planta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Atualizar planta OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nomePlanta\": \"Alface Espacial v2\",\n  \"tempMinIdeal\": 18.0,\n  \"tempMaxIdeal\": 27.0,\n  \"umiMinIdeal\": 60.0\n}"
+						},
+						"url": "{{baseUrl}}/plantas/{{idPlanta}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "04 - Astronautas",
+			"item": [
+				{
+					"name": "Listar astronautas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar astronautas OK', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    if (json._embedded) {",
+									"        const items = json._embedded[Object.keys(json._embedded)[0]];",
+									"        if (items && items.length > 1 && items[1].idAstronauta) {",
+									"            pm.collectionVariables.set('idAstronautaNovo', items[1].idAstronauta);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/astronautas"
+					}
+				},
+				{
+					"name": "Criar astronauta",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set('emailAstronautaNovo', `astro.${Date.now()}@nutrispace.com`);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Criar astronauta OK', () => pm.response.to.have.status(201));",
+									"if (pm.response.code === 201) {",
+									"    pm.collectionVariables.set('idAstronautaNovo', pm.response.json().idAstronauta);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Lucas Silva\",\n  \"cargo\": \"Biólogo\",\n  \"email\": \"{{emailAstronautaNovo}}\",\n  \"senha\": \"123456\"\n}"
+						},
+						"url": "{{baseUrl}}/astronautas"
+					}
+				},
+				{
+					"name": "Buscar astronauta admin por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Buscar admin OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/astronautas/{{idAstronauta}}"
+					}
+				},
+				{
+					"name": "Atualizar astronauta admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Atualizar admin OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Lucas Silva\",\n  \"cargo\": \"Engenheiro de Software Chefe\",\n  \"email\": \"lucas@nutrispace.com\",\n  \"senha\": \"senha123\"\n}"
+						},
+						"url": "{{baseUrl}}/astronautas/{{idAstronauta}}"
+					}
+				},
+				{
+					"name": "Buscar astronauta criado por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Buscar astronauta criado OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/astronautas/{{idAstronautaNovo}}"
+					}
+				},
+				{
+					"name": "Atualizar astronauta criado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Atualizar astronauta criado OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Lucas Silva\",\n  \"cargo\": \"Comandante de Estufa\",\n  \"email\": \"{{emailAstronautaNovo}}\",\n  \"senha\": \"123456\"\n}"
+						},
+						"url": "{{baseUrl}}/astronautas/{{idAstronautaNovo}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "05 - Estufas",
+			"item": [
+				{
+					"name": "Listar estufas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar estufas OK', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    if (json._embedded) {",
+									"        const items = json._embedded[Object.keys(json._embedded)[0]];",
+									"        if (items && items.length > 0 && items[0].idEstufa) {",
+									"            pm.collectionVariables.set('idEstufa', items[0].idEstufa);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/estufas"
+					}
+				},
+				{
+					"name": "Criar estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Criar estufa OK', () => pm.response.to.have.status(201));",
+									"if (pm.response.code === 201) {",
+									"    pm.collectionVariables.set('idEstufa', pm.response.json().idEstufa);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nomeEstufa\": \"Estufa Alpha-1\",\n  \"statusBomba\": \"LIGADA\",\n  \"idPlanta\": {{idPlanta}},\n  \"idAstronauta\": {{idAstronauta}}\n}"
+						},
+						"url": "{{baseUrl}}/estufas"
+					}
+				},
+				{
+					"name": "Buscar estufa por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Buscar estufa OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/estufas/{{idEstufa}}"
+					}
+				},
+				{
+					"name": "Atualizar estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Atualizar estufa OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nomeEstufa\": \"Estufa Alpha-1\",\n  \"statusBomba\": \"DESLIGADA\",\n  \"idPlanta\": {{idPlanta}},\n  \"idAstronauta\": {{idAstronauta}}\n}"
+						},
+						"url": "{{baseUrl}}/estufas/{{idEstufa}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "06 - Reservatórios",
+			"item": [
+				{
+					"name": "Listar reservatórios",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar reservatórios OK', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    if (json._embedded) {",
+									"        const items = json._embedded[Object.keys(json._embedded)[0]];",
+									"        if (items && items.length > 0 && items[0].idReservatorio) {",
+									"            pm.collectionVariables.set('idReservatorio', items[0].idReservatorio);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/reservatorios"
+					}
+				},
+				{
+					"name": "Criar reservatório",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Criar reservatório OK', () => pm.response.to.have.status(201));",
+									"if (pm.response.code === 201) {",
+									"    pm.collectionVariables.set('idReservatorio', pm.response.json().idReservatorio);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"capacidadeMaxLitros\": 500.0,\n  \"nivelAtualPercentual\": 75.0\n}"
+						},
+						"url": "{{baseUrl}}/reservatorios"
+					}
+				},
+				{
+					"name": "Buscar reservatório por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Buscar reservatório OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/reservatorios/{{idReservatorio}}"
+					}
+				},
+				{
+					"name": "Atualizar reservatório",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Atualizar reservatório OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"capacidadeMaxLitros\": 500.0,\n  \"nivelAtualPercentual\": 50.0\n}"
+						},
+						"url": "{{baseUrl}}/reservatorios/{{idReservatorio}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "07 - Telemetria",
+			"item": [
+				{
+					"name": "Registrar leitura (temperatura OK)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Telemetria OK', () => pm.response.to.have.status(201));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"temperaturaLida\": 22.0,\n  \"umidadeLida\": 65.0\n}"
+						},
+						"url": "{{baseUrl}}/telemetria"
+					}
+				},
+				{
+					"name": "Registrar leitura (gera alerta crítico)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Telemetria crítica OK', () => pm.response.to.have.status(201));",
+									"if (pm.response.code === 201) {",
+									"    const body = pm.response.json();",
+									"    if (body.idAlertaGerado) {",
+									"        pm.collectionVariables.set('idAlerta', body.idAlertaGerado);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"temperaturaLida\": 40.0,\n  \"umidadeLida\": 65.0\n}"
+						},
+						"url": "{{baseUrl}}/telemetria"
+					}
+				},
+				{
+					"name": "Listar leituras por estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar leituras OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/telemetria/estufa/{{idEstufa}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "08 - Alertas Críticos",
+			"item": [
+				{
+					"name": "Listar alertas ATIVOS",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar alertas ativos OK', () => pm.response.to.have.status(200));",
+									"if (pm.response.code === 200) {",
+									"    const list = pm.response.json();",
+									"    if (Array.isArray(list) && list.length > 0) {",
+									"        pm.collectionVariables.set('idAlerta', list[0].idAlerta);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/alertas/ativos"
+					}
+				},
+				{
+					"name": "Listar alertas por estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar alertas por estufa OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/alertas/estufa/{{idEstufa}}"
+					}
+				},
+				{
+					"name": "Resolver alerta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Resolver alerta OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"url": "{{baseUrl}}/alertas/{{idAlerta}}/resolver"
+					}
+				}
+			]
+		},
+		{
+			"name": "09 - Colheitas",
+			"item": [
+				{
+					"name": "Registrar colheita",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Registrar colheita OK', () => pm.response.to.have.status(201));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"quantidadeKg\": 12.5,\n  \"qualidade\": \"EXCELENTE\"\n}"
+						},
+						"url": "{{baseUrl}}/colheitas"
+					}
+				},
+				{
+					"name": "Listar colheitas por estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar colheitas OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/colheitas/estufa/{{idEstufa}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "10 - Regas",
+			"item": [
+				{
+					"name": "Registrar rega manual",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Rega manual OK', () => pm.response.to.have.status(201));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"tipoRega\": \"MANUAL\"\n}"
+						},
+						"url": "{{baseUrl}}/regas"
+					}
+				},
+				{
+					"name": "Registrar rega automática",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Rega automática OK', () => pm.response.to.have.status(201));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idEstufa\": {{idEstufa}},\n  \"tipoRega\": \"AUTOMATICA\"\n}"
+						},
+						"url": "{{baseUrl}}/regas"
+					}
+				},
+				{
+					"name": "Listar regas por estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Listar regas OK', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{baseUrl}}/regas/estufa/{{idEstufa}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "11 - Exclusões (CRUD)",
+			"item": [
+				{
+					"name": "Excluir estufa",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Excluir estufa OK', () => pm.response.to.have.status(204));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": "{{baseUrl}}/estufas/{{idEstufa}}"
+					}
+				},
+				{
+					"name": "Excluir reservatório",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Excluir reservatório OK ou já removido', () => {",
+									"    pm.expect([204, 404]).to.include(pm.response.code);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": "{{baseUrl}}/reservatorios/{{idReservatorio}}"
+					}
+				},
+				{
+					"name": "Excluir planta",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Excluir planta OK', () => pm.response.to.have.status(204));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": "{{baseUrl}}/plantas/{{idPlanta}}"
+					}
+				},
+				{
+					"name": "Excluir astronauta criado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Excluir astronauta OK', () => pm.response.to.have.status(204));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"url": "{{baseUrl}}/astronautas/{{idAstronautaNovo}}"
+					}
+				}
+			]
+		}
+	]
+}
