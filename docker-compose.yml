@@ -37,7 +37,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${ORACLE_PASSWORD:-Fiap@2tdsvms}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: oracle.jdbc.OracleDriver
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.OracleDialect
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create
       SPRING_DEVTOOLS_RESTART_ENABLED: "false"
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xmx384m -Xms256m}
     networks:
