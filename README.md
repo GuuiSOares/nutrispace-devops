@@ -95,6 +95,17 @@ nutrispace-devops/
 
 ---
 
+## Credenciais padrão
+
+| Acesso | Usuário | Senha |
+|--------|---------|-------|
+| SSH na VM | `admlnx` | `Fiap@2tdsvms` |
+| API (Swagger) | `lucas@nutrispace.com` | `senha123` |
+
+Valores definidos em `azure/provision-vm.sh` (VM) e `docker/data-docker.sql` (API).
+
+---
+
 ## How to — execução completa
 
 ### Passo 1 — Clonar o repositório
@@ -142,7 +153,7 @@ source azure/vm-info.env && echo $VM_PUBLIC_IP
 
 ### Passo 4 — Verificar os containers
 
-Conectar na VM:
+Conectar na VM (usuário e senha na seção [Credenciais padrão](#credenciais-padrão)):
 
 ```bash
 ssh admlnx@<IP_PUBLICO>
@@ -197,12 +208,7 @@ EOF'
 
 Swagger: `http://<IP_PUBLICO>:8080/swagger-ui/index.html`
 
-Credenciais padrão:
-
-| Campo | Valor |
-|-------|-------|
-| E-mail | `lucas@nutrispace.com` |
-| Senha | `senha123` |
+Credenciais na seção [Credenciais padrão](#credenciais-padrão).
 
 Via curl:
 
