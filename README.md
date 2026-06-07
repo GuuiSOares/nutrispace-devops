@@ -1,6 +1,6 @@
-# NutriSpace — DevOps Tools & Cloud Computing
+# NutriSpace — DevOps
 
-Global Solution 2026/1 · Conteinerização da API Java Advanced com Docker e deploy em Azure.
+API Java NutriSpace containerizada com Docker e Oracle XE, executada em VM Linux no Microsoft Azure.
 
 **Repositório:** https://github.com/GuuiSOares/nutrispace-devops
 
@@ -14,44 +14,32 @@ Global Solution 2026/1 · Conteinerização da API Java Advanced com Docker e de
 | Geovanne Coneglian Passos | 562673 |
 | Guilherme Soares de Almeida | 563143 |
 
-Representante da equipe: **RM 562673**
+Representante: **RM 562673**
 
 ---
 
 ## Descrição da solução
 
-O NutriSpace é um sistema de gerenciamento de estufas automatizadas para cultivo em ambientes extremos. A solução integra dispositivos IoT (ESP32), API REST em Spring Boot, banco Oracle e aplicativo mobile.
+Este repositório conteineriza a API REST Java (Spring Boot) do NutriSpace com Docker e Oracle XE, executando ambos em uma VM Linux no Microsoft Azure.
 
-Na disciplina DevOps, a API Java e o Oracle XE são executados em containers Docker em uma VM Linux no Microsoft Azure.
+O acesso externo é feito pelo IP público da VM na porta 8080. A API persiste os dados no Oracle via rede interna Docker (`nutrispace_net`).
 
 ---
 
 ## Arquitetura macro
 
-![Arquitetura NutriSpace na Azure](docs/arquitetura-azure.png)
-
-Arquivo editável (Draw.io): [`docs/arquitetura-azure.drawio`](docs/arquitetura-azure.drawio)
-
 ```mermaid
 flowchart TB
-    subgraph Clientes["Clientes"]
-        U[Usuário / CRUD]
-        M[App Mobile]
-        I[ESP32 IoT]
-    end
-
-    U -->|HTTP :8080| IP[IP Público Azure]
-    M -->|REST API| IP
-    I -->|POST /telemetria| IP
+    Cliente[Cliente HTTP / Swagger] -->|HTTP :8080| IP[IP Público Azure]
 
     subgraph Azure["Microsoft Azure — Canada Central"]
         IP --> NSG[Network Security Group<br/>22 · 8080 · 1521]
         NSG --> VM[VM AlmaLinux 10<br/>vm-nutrispace-dev · B2als_v2]
 
         subgraph Docker["Docker Compose"]
-            VM --> API[api-nutrispace-rm562673<br/>Spring Boot :8080]
+            VM --> API[api-nutrispace-rm562673<br/>API Java Spring Boot :8080]
             VM --> DB[(db-nutrispace-rm562673<br/>Oracle XE :1521)]
-            API -->|JDBC db-nutrispace:1521/XEPDB1| DB
+            API -->|JDBC db-nutrispace:1521/xepdb1| DB
             DB --> VOL[(Volume nutrispace_data)]
         end
     end
@@ -61,12 +49,10 @@ flowchart TB
 |------------|-----------|
 | Azure VM | AlmaLinux 10, `Standard_B2als_v2`, região Canada Central |
 | Resource Group | `rg-nutrispace-dev` |
-| Container API | `api-nutrispace-rm562673` — Spring Boot, porta 8080 |
-| Container Banco | `db-nutrispace-rm562673` — Oracle XE, porta 1521 |
+| Container API | `api-nutrispace-rm562673` — API Java Spring Boot, porta 8080, usuário `nutriuser` |
+| Container Banco | `db-nutrispace-rm562673` — Oracle XE, porta 1521, schema `nutrispace` |
 | Rede Docker | `nutrispace_net` |
-| Volume | `nutrispace_data` (volume nomeado Docker) |
-
-Fluxo: usuário, mobile ou IoT → IP público da VM → API → Oracle (persistência).
+| Volume | `nutrispace_data` |
 
 ---
 
@@ -76,16 +62,18 @@ Fluxo: usuário, mobile ou IoT → IP público da VM → API → Oracle (persist
 nutrispace-devops/
 ├── Dockerfile
 ├── docker-compose.yml
-├── .env.example
+├── docker/
+│   ├── application-docker.properties
+│   ├── schema-docker.sql
+│   └── data-docker.sql
 ├── azure/
 │   ├── provision-vm.sh
 │   ├── deploy-app.sh
 │   └── cleanup-vm.sh
 ├── docs/
-│   ├── arquitetura-azure.drawio
-│   └── arquitetura-azure.png
+│   └── arquitetura-azure.drawio
 └── NutriSpace-GS-main/
-    └── (API Java Advanced)
+    └── API Java (Spring Boot)
 ```
 
 ---
@@ -95,28 +83,32 @@ nutrispace-devops/
 | Container | Imagem | Porta |
 |-----------|--------|-------|
 | `api-nutrispace-rm562673` | Build via `Dockerfile` | 8080 |
-| `db-nutrispace-rm562673` | `gvenzl/oracle-xe:21-slim` | 1521 |
+| `db-nutrispace-rm562673` | `gvenzl/oracle-xe:21-slim-faststart` | 1521 |
 
 ---
 
 ## Pré-requisitos
 
-- Conta Azure for Students
-- Azure CLI (`az login`)
+- Conta Azure
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) autenticado (`az login`)
 - Git
 
 ---
 
-## Execução em nuvem
+## How to — execução completa
 
-### 1. Clonar o repositório
+### Passo 1 — Clonar o repositório
+
+Na máquina local:
 
 ```bash
 git clone https://github.com/GuuiSOares/nutrispace-devops.git
 cd nutrispace-devops
 ```
 
-### 2. Provisionar infraestrutura na Azure
+### Passo 2 — Provisionar a VM na Azure
+
+Na máquina local:
 
 ```bash
 bash azure/provision-vm.sh
@@ -130,40 +122,46 @@ bash azure/provision-vm.sh
 | SO | AlmaLinux 10 |
 | Tamanho | `Standard_B2als_v2` |
 
-O script cria a VM, libera as portas **22**, **8080** e **1521**, instala o Docker e grava o IP em `azure/vm-info.env`.
+O script cria a VM, libera as portas 22, 8080 e 1521, instala o Docker e grava o IP em `azure/vm-info.env`.
 
-### 3. Publicar a aplicação na VM
+### Passo 3 — Publicar a aplicação
+
+Na máquina local:
 
 ```bash
 bash azure/deploy-app.sh
 ```
 
-Aguarde alguns minutos na primeira execução (build da API + inicialização do Oracle).
+Aguarde 5 a 8 minutos na primeira execução (build da API e inicialização do Oracle).
 
-Swagger: `http://<IP-VM>:8080/swagger-ui.html` (IP em `azure/vm-info.env`)
-
-Confirmar que a API usa o Oracle **em container** (nao o Oracle FIAP):
+Consultar o IP público:
 
 ```bash
-docker compose ps
-docker volume ls | grep nutrispace_data
-docker compose logs api-nutrispace | tail -20
+source azure/vm-info.env && echo $VM_PUBLIC_IP
 ```
 
-O servico `db-nutrispace` deve estar `healthy` e a URL de conexao no compose aponta para `db-nutrispace:1521`.
+### Passo 4 — Verificar os containers
 
-### 4. Verificar execução
-
-Via SSH na VM (opcional, para evidências):
+Conectar na VM:
 
 ```bash
 ssh admlnx@<IP_PUBLICO>
+cd ~/nutrispace-devops
 docker compose ps
-docker compose logs db-nutrispace
-docker compose logs api-nutrispace
+docker compose logs db-nutrispace --tail 30
+docker compose logs api-nutrispace --tail 30
+docker volume ls | grep nutrispace_data
 ```
 
-### 5. Inspecionar containers
+Verificações:
+
+- Serviço `db-nutrispace` com status `healthy`
+- Log da API contendo `Started NutrispaceApplication`
+- Volume `nutrispace_data` listado
+
+### Passo 5 — Inspecionar os containers
+
+Container da API:
 
 ```bash
 docker container exec -it api-nutrispace-rm562673 sh
@@ -171,7 +169,13 @@ pwd
 ls -l
 whoami
 exit
+```
 
+Resultado esperado: diretório `/app`, usuário `nutriuser`.
+
+Container do banco:
+
+```bash
 docker container exec -it db-nutrispace-rm562673 bash
 pwd
 ls -l
@@ -179,26 +183,44 @@ whoami
 exit
 ```
 
-### 6. Consultar o banco
+### Passo 6 — Consultar tabelas no banco
 
 ```bash
-docker container exec db-nutrispace-rm562673 bash -c \
-  "echo \"SELECT table_name FROM user_tables WHERE table_name LIKE 'TB_NS%';\" | sqlplus -s system/Fiap@2tdsvms@localhost:1521/XEPDB1"
+docker exec db-nutrispace-rm562673 bash -c 'sqlplus -s / as sysdba <<EOF
+ALTER SESSION SET CONTAINER = XEPDB1;
+SELECT table_name FROM dba_tables WHERE owner='"'"'NUTRISPACE'"'"' AND table_name LIKE '"'"'TB_NS%'"'"' ORDER BY table_name;
+EXIT;
+EOF'
 ```
 
-### 7. Testar a API
+### Passo 7 — Autenticar na API
 
-Swagger: `http://<IP_PUBLICO>:8080/swagger-ui.html`
+Swagger: `http://<IP_PUBLICO>:8080/swagger-ui/index.html`
 
-Login:
+Credenciais padrão:
+
+| Campo | Valor |
+|-------|-------|
+| E-mail | `lucas@nutrispace.com` |
+| Senha | `senha123` |
+
+Via curl:
 
 ```bash
 curl -X POST http://<IP_PUBLICO>:8080/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"<email>","senha":"<senha>"}'
+  -d '{"email":"lucas@nutrispace.com","senha":"senha123"}'
 ```
 
-CRUD de plantas (com token JWT):
+No Swagger:
+
+1. Executar **POST** `/auth/login` com as credenciais acima
+2. Copiar o valor de `token` da resposta
+3. Clicar em **Authorize** e informar `Bearer <token>`
+
+### Passo 8 — CRUD de plantas
+
+Substituir `<IP_PUBLICO>`, `<TOKEN>` e `<id>` pelos valores reais.
 
 ```bash
 # CREATE
@@ -220,11 +242,21 @@ curl -X PUT http://<IP_PUBLICO>:8080/plantas/<id> \
 curl -X DELETE http://<IP_PUBLICO>:8080/plantas/<id> -H "Authorization: Bearer <TOKEN>"
 ```
 
-Após cada operação de escrita, validar no banco:
+Equivalente no Swagger: endpoints em `/plantas`.
+
+### Passo 9 — Consultar plantas no banco após escrita
+
+Após cada operação de CREATE, UPDATE ou DELETE:
 
 ```bash
-docker container exec db-nutrispace-rm562673 bash -c \
-  "echo \"SELECT id_planta, nome_planta FROM tb_ns_planta;\" | sqlplus -s system/Fiap@2tdsvms@localhost:1521/XEPDB1"
+docker exec -it db-nutrispace-rm562673 bash
+sqlplus / as sysdba
+```
+
+```sql
+ALTER SESSION SET CONTAINER = XEPDB1;
+SELECT id_planta, nome_planta FROM nutrispace.tb_ns_planta;
+EXIT;
 ```
 
 ---
@@ -232,24 +264,16 @@ docker container exec db-nutrispace-rm562673 bash -c \
 ## Comandos auxiliares
 
 ```bash
-docker volume ls
 docker network ls
 docker compose down
+docker compose down -v
 bash azure/cleanup-vm.sh
 ```
 
----
-
-## Scripts Azure CLI
-
-| Script | Descrição |
-|--------|-----------|
-| [`azure/provision-vm.sh`](azure/provision-vm.sh) | Resource Group, VM AlmaLinux, portas e Docker |
-| [`azure/deploy-app.sh`](azure/deploy-app.sh) | Clone do GitHub e `docker compose up -d --build` |
-| [`azure/cleanup-vm.sh`](azure/cleanup-vm.sh) | Exclusão do Resource Group |
+| Script | Função |
+|--------|--------|
+| `azure/provision-vm.sh` | Cria VM, portas e Docker |
+| `azure/deploy-app.sh` | Clona o repositório na VM e executa `docker compose up -d --build` |
+| `azure/cleanup-vm.sh` | Remove o Resource Group |
 
 ---
-
-## API Java
-
-Documentação da aplicação: [NutriSpace-GS-main/README.md](NutriSpace-GS-main/README.md)

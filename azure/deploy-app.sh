@@ -29,4 +29,4 @@ $AZ vm run-command invoke \
 
 echo ""
 echo "Deploy enviado. Aguarde alguns minutos (build + Oracle na primeira vez)."
-echo "Swagger: http://${VM_PUBLIC_IP}:8080/swagger-ui.html"
+echo "Swagger: http://${VM_PUBLIC_IP}:8080/swagger-ui/index.html"
