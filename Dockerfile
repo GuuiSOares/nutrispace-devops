@@ -14,7 +14,7 @@ RUN addgroup --system nutriapp && adduser --system --ingroup nutriapp nutriuser
 WORKDIR /app
 
 COPY --from=builder /build/target/*.jar app.jar
-COPY docker/application-docker.properties docker/data-docker.sql /app/config/
+COPY docker/application-docker.properties docker/schema-docker.sql docker/data-docker.sql /app/config/
 RUN chown -R nutriuser:nutriapp app.jar /app/config
 
 USER nutriuser
