@@ -14,7 +14,8 @@ RUN addgroup --system nutriapp && adduser --system --ingroup nutriapp nutriuser
 WORKDIR /app
 
 COPY --from=builder /build/target/*.jar app.jar
-RUN chown nutriuser:nutriapp app.jar
+COPY docker/application-docker.properties docker/data-docker.sql /app/config/
+RUN chown -R nutriuser:nutriapp app.jar /app/config
 
 USER nutriuser
 EXPOSE 8080

@@ -6,6 +6,10 @@ services:
     shm_size: 1g
     environment:
       ORACLE_PASSWORD: ${ORACLE_PASSWORD:-Fiap@2tdsvms}
+      APP_USER: nutrispace
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD:-Fiap@2tdsvms}
+      ORACLE_INIT_MEMORY: 1024
+      ORACLE_DISABLE_ASYNCH_IO: "true"
     ports:
       - "1521:1521"
     volumes:
@@ -16,7 +20,7 @@ services:
       test: ["CMD", "healthcheck.sh"]
       interval: 15s
       timeout: 10s
-      retries: 12
+      retries: 20
       start_period: 120s
 
   api-nutrispace:
@@ -32,12 +36,11 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_ADDITIONAL_LOCATION: optional:file:/app/config/
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//db-nutrispace:1521/xepdb1
-      SPRING_DATASOURCE_USERNAME: SYSTEM
-      SPRING_DATASOURCE_PASSWORD: ${ORACLE_PASSWORD:-Fiap@2tdsvms}
+      SPRING_DATASOURCE_USERNAME: nutrispace
+      SPRING_DATASOURCE_PASSWORD: ${APP_USER_PASSWORD:-Fiap@2tdsvms}
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: oracle.jdbc.OracleDriver
-      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.OracleDialect
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create
       SPRING_DEVTOOLS_RESTART_ENABLED: "false"
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xmx384m -Xms256m}
     networks:
