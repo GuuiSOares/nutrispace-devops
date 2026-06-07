@@ -28,53 +28,7 @@ O acesso externo é feito pelo IP público da VM na porta 8080. A API persiste o
 
 ## Arquitetura macro
 
-```mermaid
-flowchart TB
-    Cliente[Cliente HTTP / Swagger] -->|HTTP :8080| IP[IP Público Azure]
-
-    subgraph Azure["Microsoft Azure — Canada Central"]
-        IP --> NSG[Network Security Group<br/>22 · 8080 · 1521]
-        NSG --> VM[VM AlmaLinux 10<br/>vm-nutrispace-dev · B2als_v2]
-
-        subgraph Docker["Docker Compose"]
-            VM --> API[api-nutrispace-rm562673<br/>API Java Spring Boot :8080]
-            VM --> DB[(db-nutrispace-rm562673<br/>Oracle XE :1521)]
-            API -->|JDBC db-nutrispace:1521/xepdb1| DB
-            DB --> VOL[(Volume nutrispace_data)]
-        end
-    end
-```
-
-| Componente | Descrição |
-|------------|-----------|
-| Azure VM | AlmaLinux 10, `Standard_B2als_v2`, região Canada Central |
-| Resource Group | `rg-nutrispace-dev` |
-| Container API | `api-nutrispace-rm562673` — API Java Spring Boot, porta 8080, usuário `nutriuser` |
-| Container Banco | `db-nutrispace-rm562673` — Oracle XE, porta 1521, schema `nutrispace` |
-| Rede Docker | `nutrispace_net` |
-| Volume | `nutrispace_data` |
-
----
-
-## Estrutura do repositório
-
-```
-nutrispace-devops/
-├── Dockerfile
-├── docker-compose.yml
-├── docker/
-│   ├── application-docker.properties
-│   ├── schema-docker.sql
-│   └── data-docker.sql
-├── azure/
-│   ├── provision-vm.sh
-│   ├── deploy-app.sh
-│   └── cleanup-vm.sh
-├── docs/
-│   └── arquitetura-azure.drawio
-└── NutriSpace-GS-main/
-    └── API Java (Spring Boot)
-```
+![Arquitetura NutriSpace no Azure](docs/arquitetura-azure.png)
 
 ---
 
@@ -108,18 +62,22 @@ Valores definidos em `azure/provision-vm.sh` (VM) e `docker/data-docker.sql` (AP
 
 ## How to — execução completa
 
-### Passo 1 — Clonar o repositório
+Existem dois cenários. Na **primeira vez**, a VM ainda não existe — não há IP para SSH. É preciso criar a VM no Azure Cloud Shell, obter o IP e só então conectar.
 
-Na máquina local:
+---
+
+### A — Primeira vez (criar a VM e publicar a aplicação)
+
+**Onde executar:** Azure Cloud Shell (antes da VM existir, não há SSH).
+
+**A.1 — Clonar o repositório no Cloud Shell**
 
 ```bash
 git clone https://github.com/GuuiSOares/nutrispace-devops.git
 cd nutrispace-devops
 ```
 
-### Passo 2 — Provisionar a VM na Azure
-
-Na máquina local:
+**A.2 — Criar a VM na Azure**
 
 ```bash
 bash azure/provision-vm.sh
@@ -135,29 +93,73 @@ bash azure/provision-vm.sh
 
 O script cria a VM, libera as portas 22, 8080 e 1521, instala o Docker e grava o IP em `azure/vm-info.env`.
 
-### Passo 3 — Publicar a aplicação
-
-Na máquina local:
-
-```bash
-bash azure/deploy-app.sh
-```
-
-Aguarde 5 a 8 minutos na primeira execução (build da API e inicialização do Oracle).
-
-Consultar o IP público:
+**A.3 — Obter o IP público**
 
 ```bash
 source azure/vm-info.env && echo $VM_PUBLIC_IP
 ```
 
-### Passo 4 — Verificar os containers
+Anote o IP exibido (ex: `20.220.59.168`). Também é possível consultar no portal Azure, na visão geral da VM.
 
-Conectar na VM (usuário e senha na seção [Credenciais padrão](#credenciais-padrão)):
+**A.4 — Conectar na VM**
 
 ```bash
 ssh admlnx@<IP_PUBLICO>
-cd ~/nutrispace-devops
+```
+
+Senha: `Fiap@2tdsvms` (não aparece enquanto digita — é normal).
+
+**A.5 — Clonar o repositório na VM e entrar na pasta**
+
+Dentro da VM (`[admlnx@vm-nutrispace-dev ~]$`):
+
+```bash
+git clone https://github.com/GuuiSOares/nutrispace-devops.git
+cd nutrispace-devops
+ls -l
+```
+
+Estrutura do repositório:
+
+```
+nutrispace-devops/
+├── Dockerfile
+├── docker-compose.yml
+├── docker/
+│   ├── application-docker.properties
+│   ├── schema-docker.sql
+│   └── data-docker.sql
+├── azure/
+│   ├── provision-vm.sh
+│   ├── deploy-app.sh
+│   └── cleanup-vm.sh
+├── docs/
+│   └── arquitetura-azure.png
+└── NutriSpace-GS-main/
+    └── API Java (Spring Boot)
+```
+
+**A.6 — Subir os containers**
+
+```bash
+docker compose up -d --build
+```
+
+Aguarde 5 a 8 minutos na primeira execução (build da API e inicialização do Oracle).
+
+A partir daqui, continue no **Passo 1** abaixo (verificar containers, testes, banco e API).
+
+---
+
+Se o repositório ainda não existir na VM, use `git clone` no lugar de `git pull` (passo A.5).
+
+A partir daqui, continue no **Passo 1** abaixo.
+
+---
+
+### Passo 1 — Verificar os containers
+
+```bash
 docker compose ps
 docker compose logs db-nutrispace --tail 30
 docker compose logs api-nutrispace --tail 30
@@ -170,7 +172,7 @@ Verificações:
 - Log da API contendo `Started NutrispaceApplication`
 - Volume `nutrispace_data` listado
 
-### Passo 5 — Inspecionar os containers
+### Passo 2 — Inspecionar os containers
 
 Container da API:
 
@@ -194,17 +196,42 @@ whoami
 exit
 ```
 
-### Passo 6 — Consultar tabelas no banco
+### Passo 3 — Acessar o Oracle no container
+
+Na VM, na pasta do projeto:
 
 ```bash
-docker exec db-nutrispace-rm562673 bash -c 'sqlplus -s / as sysdba <<EOF
-ALTER SESSION SET CONTAINER = XEPDB1;
-SELECT table_name FROM dba_tables WHERE owner='"'"'NUTRISPACE'"'"' AND table_name LIKE '"'"'TB_NS%'"'"' ORDER BY table_name;
-EXIT;
-EOF'
+cd ~/nutrispace-devops
+docker exec -it db-nutrispace-rm562673 bash
+sqlplus / as sysdba
 ```
 
-### Passo 7 — Autenticar na API
+No SQL*Plus, selecionar o banco da aplicação e consultar as tabelas:
+
+```sql
+ALTER SESSION SET CONTAINER = XEPDB1;
+SELECT table_name FROM dba_tables WHERE owner = 'NUTRISPACE' AND table_name LIKE 'TB_NS%' ORDER BY table_name;
+```
+
+Sair do SQL*Plus e do container:
+
+```sql
+EXIT;
+```
+
+```bash
+exit
+```
+
+Atalho (entra direto no SQL*Plus, sem passar pelo bash):
+
+```bash
+docker exec -it db-nutrispace-rm562673 sqlplus / as sysdba
+```
+
+O comando `ALTER SESSION SET CONTAINER = XEPDB1` é necessário porque o SQL*Plus abre no container raiz (`CDB$ROOT`); os dados da API ficam no pluggable database `XEPDB1`, schema `nutrispace`.
+
+### Passo 4 — Autenticar na API
 
 Swagger: `http://<IP_PUBLICO>:8080/swagger-ui/index.html`
 
@@ -224,7 +251,7 @@ No Swagger:
 2. Copiar o valor de `token` da resposta
 3. Clicar em **Authorize** e informar `Bearer <token>`
 
-### Passo 8 — CRUD de plantas
+### Passo 5 — CRUD de plantas
 
 Substituir `<IP_PUBLICO>`, `<TOKEN>` e `<id>` pelos valores reais.
 
@@ -250,19 +277,15 @@ curl -X DELETE http://<IP_PUBLICO>:8080/plantas/<id> -H "Authorization: Bearer <
 
 Equivalente no Swagger: endpoints em `/plantas`.
 
-### Passo 9 — Consultar plantas no banco após escrita
+### Passo 6 — Consultar dados no banco após escrita
 
-Após cada operação de CREATE, UPDATE ou DELETE:
-
-```bash
-docker exec -it db-nutrispace-rm562673 bash
-sqlplus / as sysdba
-```
+Após cada operação de CREATE, UPDATE ou DELETE na API, repetir o acesso do [Passo 3](#passo-3--acessar-o-oracle-no-container) e executar:
 
 ```sql
 ALTER SESSION SET CONTAINER = XEPDB1;
 SELECT id_planta, nome_planta FROM nutrispace.tb_ns_planta;
-EXIT;
+SELECT id_estufa, nome_estufa FROM nutrispace.tb_ns_estufa;
+SELECT id_astronauta, nome, email FROM nutrispace.tb_ns_astronauta;
 ```
 
 ---
@@ -273,13 +296,41 @@ EXIT;
 docker network ls
 docker compose down
 docker compose down -v
+```
+
+### Remover a VM (Resource Group)
+
+No Azure Cloud Shell:
+
+```bash
 bash azure/cleanup-vm.sh
 ```
+
+A exclusão roda em segundo plano e pode levar de 5 a 15 minutos.
+
+Verificar se o Resource Group foi removido:
+
+```bash
+az group show -n rg-nutrispace-dev
+```
+
+| Resultado | Significado |
+|-----------|-------------|
+| Erro `ResourceGroupNotFound` | Resource Group apagado — pode executar `provision-vm.sh` |
+| Exibe dados do Resource Group | Ainda existe — aguarde alguns minutos e execute o comando novamente |
+
+Alternativa:
+
+```bash
+az group list -o table
+```
+
+Se `rg-nutrispace-dev` não aparecer na lista, a exclusão foi concluída.
 
 | Script | Função |
 |--------|--------|
 | `azure/provision-vm.sh` | Cria VM, portas e Docker |
-| `azure/deploy-app.sh` | Clona o repositório na VM e executa `docker compose up -d --build` |
+| `azure/deploy-app.sh` | Atalho: clona na VM e executa `docker compose up -d --build` via Azure CLI |
 | `azure/cleanup-vm.sh` | Remove o Resource Group |
 
 ---
