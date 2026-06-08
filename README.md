@@ -4,6 +4,8 @@ API Java NutriSpace containerizada com Docker e Oracle XE, executada em VM Linux
 
 **Repositório:** https://github.com/GuuiSOares/nutrispace-devops
 
+**Vídeo demonstrativo:** https://youtu.be/ORrzW61UL8o
+
 ---
 
 ## Equipe
